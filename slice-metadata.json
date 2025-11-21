@@ -1,0 +1,11 @@
+{
+  "name": "Slice",
+  "tagline": "Social platform built on Lens Protocol",
+  "description": "Slice is a modern social application built on Lens Protocol V2, providing seamless social interactions and content sharing.",
+  "developer": "Slice Team",
+  "url": "https://sf-web-ten.vercel.app/",
+  "platforms": ["WEB"],
+  "logo": "ipfs://YOUR_LOGO_IPFS_HASH_HERE",
+  "privacyPolicy": "https://sf-web-ten.vercel.app/privacy",
+  "termsOfService": "https://sf-web-ten.vercel.app/terms"
+}
