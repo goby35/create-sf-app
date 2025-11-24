@@ -1,7 +1,8 @@
 import { createWalletClient, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-// import { polygonAmoy } from "viem/chains"; // Bỏ cái này đi
-import { lensChainTestnet } from "./chains"; // Import chuỗi custom
+import { lensChainTestnet, lensChainMainnet } from "./chains"; // Import chuỗi custom
+import { IS_MAINNET } from "./constants";
+
 import * as dotenv from "dotenv";
 
 dotenv.config();
@@ -30,6 +31,6 @@ export const account = privateKeyToAccount(privateKey as `0x${string}`);
 
 export const signer = createWalletClient({
   account,
-  chain: lensChainTestnet,
+  chain: IS_MAINNET ? lensChainMainnet : lensChainTestnet,
   transport: http(),
 });

@@ -1,43 +1,49 @@
-/**
- * Create Slice App on Lens Protocol
- * 
- * This script creates the "Slice" app with the specified configuration.
- * 
- * App Details:
- * - Name: Slice
- * - Admin/Treasury: 0x00399b4E7EdcF538cc4aD03c4FCfE366B65234a6
- * - Website: https://sf-web-ten.vercel.app/
- */
-
-import { signMessageWith } from "@lens-protocol/client/viem";
+import * as dotenv from "dotenv";
+import { signMessageWith, handleOperationWith } from "@lens-protocol/client/viem";
+import { app, type Platform } from "@lens-protocol/metadata";
+import { uri, evmAddress } from "@lens-protocol/client";
+import { createApp, fetchApp } from "@lens-protocol/client/actions";
+import { uploadImageFromPath, uploadMetadataToStorage } from "./storage/upload";
 import { client } from "./client";
 import { signer, account } from "./signer";
-import { lensChainTestnet } from "./chains";
-import { encodeFunctionData, parseAbi } from "viem";
 
-// App metadata structure
-const APP_METADATA = {
+dotenv.config();
+
+const LOGO_PATH = "./src/assets/slice-logo.png";
+const METADATA = {
   name: "Slice",
   tagline: "Social platform built on Lens Protocol",
   description: "Slice is a modern social application built on Lens Protocol V2",
-  developer: "Slice Team",
+  developer: "Tmh3101 <minhhieu31012004@gmail.com>",
   url: "https://sf-web-ten.vercel.app/",
-  platforms: ["WEB"],
-  // Add these if you have them:
-  // logo: "ipfs://...",
-  // privacyPolicy: "https://sf-web-ten.vercel.app/privacy",
-  // termsOfService: "https://sf-web-ten.vercel.app/terms"
+  platforms: ["web"] as Platform[],
+};
+
+const uploadMetadata = async (metadata: any): Promise<string> => {
+  const logoUri = await uploadImageFromPath(LOGO_PATH);
+
+  const uri = await uploadMetadataToStorage(app({
+    ...metadata,
+    logo: logoUri,
+  }));
+
+  return uri;
 };
 
 async function createSliceApp() {
+  const AdminAdress = process.env.TREASURY_ADDRESS;
+  if (!AdminAdress) {
+    throw new Error("Vui lòng điền TREASURY_ADDRESS vào file .env");
+  }
+
   console.log("\n" + "=".repeat(70));
   console.log("  CREATE SLICE APP ON LENS PROTOCOL TESTNET");
   console.log("=".repeat(70) + "\n");
 
   console.log("📋 App Configuration:");
   console.log(`   Name: Slice`);
-  console.log(`   Admin: 0x00399b4E7EdcF538cc4aD03c4FCfE366B65234a6`);
-  console.log(`   Treasury: 0x00399b4E7EdcF538cc4aD03c4FCfE366B65234a6`);
+  console.log(`   Admin: ${AdminAdress}`);
+  console.log(`   Treasury: ${AdminAdress}`);
   console.log(`   Website: https://sf-web-ten.vercel.app/`);
   console.log(`   Wallet: ${account.address}\n`);
 
@@ -65,10 +71,11 @@ async function createSliceApp() {
     // ========================================
     // STEP 2: UPLOAD METADATA TO IPFS
     // ========================================
-    console.log("📤 [2/4] Using IPFS metadata...");
     
     // Metadata uploaded to IPFS via Pinata
-    const metadataUri = "ipfs://bafkreianr76by3y6at65we7dm4c7mg6pgfbk4m5ihpqvxgbs6fbhc34fnm";
+    console.log("📤 [2/4] Using IPFS metadata...");
+
+    const metadataUri = await uploadMetadata(METADATA);
     console.log(`    Metadata URI: ${metadataUri}`);
     console.log(`    Verify at: https://gateway.pinata.cloud/ipfs/bafkreianr76by3y6at65we7dm4c7mg6pgfbk4m5ihpqvxgbs6fbhc34fnm\n`);
 
@@ -78,9 +85,9 @@ async function createSliceApp() {
     console.log("🔧 [3/4] Preparing CreateApp request...");
     
     const createAppRequest = {
-      admins: ["0x00399b4E7EdcF538cc4aD03c4FCfE366B65234a6"],
-      metadataUri: metadataUri,
-      treasury: "0x00399b4E7EdcF538cc4aD03c4FCfE366B65234a6",
+      admins: [evmAddress(AdminAdress)],
+      treasury: evmAddress(AdminAdress),
+      metadataUri: uri(metadataUri), // the URI from the previous step
     };
 
     console.log("    Request prepared successfully!\n");
@@ -91,9 +98,21 @@ async function createSliceApp() {
     console.log("🚀 [4/4] Submitting CreateApp transaction...");
     console.log("    This may take a few moments...\n");
 
-    const result = await sessionClient.mutation(CreateAppMutation, {
-      request: createAppRequest
-    });
+    const result = await createApp(sessionClient, {
+      ...createAppRequest,
+      defaultFeed: {
+        globalFeed: true,
+      },
+      graph: {
+        globalGraph: true,
+      },
+      namespace: {
+        globalNamespace: true,
+      },
+    })
+    .andThen(handleOperationWith(signer))
+    .andThen(sessionClient.waitForTransaction)
+    .andThen((txHash) => fetchApp(sessionClient, { txHash }));
 
     if (result.isErr()) {
       console.error("\n❌ Failed to create app:");
@@ -102,49 +121,16 @@ async function createSliceApp() {
     }
 
     const response: any = result.value;
+    console.log("    ✅ CreateApp transaction processed!\n");
+    console.log(`    App ID: ${response.appId}`);
+    console.log("RESPONSE:", response);
 
     // ========================================
     // HANDLE RESPONSE
     // ========================================
     console.log("\n" + "=".repeat(70));
-    
-    if (response.__typename === "CreateAppResponse") {
-      console.log("🎉 SUCCESS! App created!");
-      console.log("=".repeat(70));
-      console.log(`\n📝 Transaction Hash: ${response.hash}`);
-      console.log(`\n🔍 View on Lens Explorer:`);
-      console.log(`   https://scan.testnet.lens.dev/tx/${response.hash}`);
-      console.log(`\n⏳ Waiting for transaction to be indexed...`);
-      console.log(`   This may take 30-60 seconds.`);
-      console.log(`\n✨ Once indexed, your app will be available on Lens Protocol!`);
-      
-    } else if (response.__typename === "SelfFundedTransactionRequest") {
-      console.log("💰 SELF-FUNDED TRANSACTION REQUIRED");
-      console.log("=".repeat(70));
-      console.log(`\n⚠️  You need to sign and broadcast this transaction manually.`);
-      console.log(`\nTransaction Data:`);
-      console.log(JSON.stringify(response.raw, null, 2));
-      console.log(`\n📖 Reason: ${response.reason}`);
-      console.log(`   Self-funded reason: ${response.selfFundedReason}`);
-      
-    } else if (response.__typename === "TransactionWillFail") {
-      console.log("❌ TRANSACTION WILL FAIL");
-      console.log("=".repeat(70));
-      console.error(`\nReason: ${response.reason}`);
-      console.error(`\n💡 Possible causes:`);
-      console.error(`   - Insufficient permissions`);
-      console.error(`   - Invalid metadata URI`);
-      console.error(`   - Network issues`);
-      console.error(`\n📚 Check the Lens docs for CreateApp requirements.`);
-      
-    } else {
-      console.log("⚠️  UNEXPECTED RESPONSE");
-      console.log("=".repeat(70));
-      console.log(`\nResponse type: ${response.__typename}`);
-      console.log(`Full response:`, JSON.stringify(response, null, 2));
-    }
-
-    console.log("\n" + "=".repeat(70) + "\n");
+    console.log("\n\n=> RESPONSE:\n", response);
+    console.log("\n\n" + "=".repeat(70) + "\n");
 
   } catch (error: any) {
     console.error("\n" + "=".repeat(70));
@@ -161,26 +147,4 @@ async function createSliceApp() {
   }
 }
 
-// ========================================
-// NOTES FOR PRODUCTION
-// ========================================
-/**
- * IMPORTANT: For production deployment, you should:
- * 
- * 1. Upload metadata to IPFS properly:
- *    - Use Pinata (https://pinata.cloud)
- *    - Or NFT.Storage (https://nft.storage)
- *    - Or Web3.Storage (https://web3.storage)
- * 
- * 2. Get a proper IPFS hash like:
- *    ipfs://bafkreih4r6qvb7wqvdfqvq7yxj5q6z3r2w4x5y6a7b8c9d0e1f2g3h4i5j6k
- * 
- * 3. Ensure your wallet has permission to create apps on testnet
- * 
- * 4. Have enough GRASS tokens for transaction fees
- * 
- * 5. Verify the transaction on Lens Explorer after creation
- */
-
-// Run the script
 createSliceApp();

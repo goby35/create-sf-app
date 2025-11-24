@@ -25,7 +25,9 @@
   "type": "commonjs",
   "dependencies": {
     "@lens-chain/sdk": "^1.0.3",
+    "@lens-chain/storage-client": "^1.0.6",
     "@lens-protocol/client": "^0.0.0-canary-20250430134539",
+    "@lens-protocol/metadata": "^2.1.0",
     "dotenv": "^17.2.3",
     "nft.storage": "^7.2.0",
     "pinata-web3": "^0.5.4",

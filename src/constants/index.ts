@@ -103,3 +103,5 @@ export const STORAGE_KEYS = {
   WALLET_ADDRESS: "lens_wallet_address",
   LAST_PROFILE: "lens_last_profile",
 } as const;
+
+export const IS_MAINNET = false;

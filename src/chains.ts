@@ -26,3 +26,26 @@ export const lensChainTestnet = {
         }
     }
 } as const satisfies Chain;
+
+export const LENS_MAINNET_RPC = "https://rpc.lens.xyz"; // Ví dụ minh họa
+
+export const lensChainMainnet = {
+    id: 232, // TBD
+    name: "Lens Chain",
+    nativeCurrency: {
+        name: "GHO",
+        symbol: "GHO",
+        decimals: 18,
+    },
+    rpcUrls: {
+        default: {
+            http: [LENS_MAINNET_RPC],
+        },
+    },
+    blockExplorers: {
+        default: {
+            name: "LensScan",
+            url: "https://scan.lens.dev" // Ví dụ minh họa
+        }
+    }
+} as const satisfies Chain;
