@@ -10,10 +10,10 @@
  */
 
 import { signMessageWith } from "@lens-protocol/client/viem";
-import { client } from "../client";
-import { signer, account } from "../signer";
-// @ts-ignore - GraphQL mutations
-import { CreateAppMutation } from "@lens-protocol/graphql";
+import { client } from "./client";
+import { signer, account } from "./signer";
+import { lensChainTestnet } from "./chains";
+import { encodeFunctionData, parseAbi } from "viem";
 
 // App metadata structure
 const APP_METADATA = {
@@ -65,16 +65,12 @@ async function createSliceApp() {
     // ========================================
     // STEP 2: UPLOAD METADATA TO IPFS
     // ========================================
-    console.log("📤 [2/4] Preparing app metadata...");
-    console.log("    Metadata:", JSON.stringify(APP_METADATA, null, 2));
+    console.log("📤 [2/4] Using IPFS metadata...");
     
-    // For now, we'll use a placeholder. In production, you should:
-    // 1. Upload APP_METADATA to IPFS using Pinata, NFT.Storage, etc.
-    // 2. Get the IPFS hash
-    // 3. Use it as metadataUri
-    
-    const metadataUri = "data:application/json," + encodeURIComponent(JSON.stringify(APP_METADATA));
-    console.log(`    Metadata URI: ${metadataUri.substring(0, 100)}...\n`);
+    // Metadata uploaded to IPFS via Pinata
+    const metadataUri = "ipfs://bafkreianr76by3y6at65we7dm4c7mg6pgfbk4m5ihpqvxgbs6fbhc34fnm";
+    console.log(`    Metadata URI: ${metadataUri}`);
+    console.log(`    Verify at: https://gateway.pinata.cloud/ipfs/bafkreianr76by3y6at65we7dm4c7mg6pgfbk4m5ihpqvxgbs6fbhc34fnm\n`);
 
     // ========================================
     // STEP 3: PREPARE REQUEST
@@ -105,7 +101,7 @@ async function createSliceApp() {
       process.exit(1);
     }
 
-    const response = result.value;
+    const response: any = result.value;
 
     // ========================================
     // HANDLE RESPONSE
